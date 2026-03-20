@@ -21,7 +21,7 @@ services:
       ROOM_ID: alpha
       ROOM_NAME: Alpha Room
       ROOM_LISTEN_ADDR: ":9090"
-      ROOM_TICK_RATE: "8"
+      ROOM_TICK_RATE: "12"
       ROOM_ARENA_WIDTH: "48"
       ROOM_ARENA_HEIGHT: "20"
       ROOM_MAX_PLAYERS: "6"

@@ -56,7 +56,7 @@ func LoadRoom() RoomConfig {
 		RoomID:           getenv("ROOM_ID", "alpha"),
 		Name:             getenv("ROOM_NAME", "Alpha Room"),
 		ListenAddr:       getenv("ROOM_LISTEN_ADDR", ":9090"),
-		TickRate:         getInt("ROOM_TICK_RATE", 8),
+		TickRate:         getInt("ROOM_TICK_RATE", 12),
 		ArenaWidth:       getInt("ROOM_ARENA_WIDTH", 48),
 		ArenaHeight:      getInt("ROOM_ARENA_HEIGHT", 20),
 		MaxPlayers:       getInt("ROOM_MAX_PLAYERS", 6),

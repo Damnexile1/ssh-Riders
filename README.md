@@ -37,7 +37,7 @@ docker compose up --build
 - `d` — right
 - `q` — exit local round view
 
-> On Unix-like systems the local terminal adapter switches to raw mode, so **pressing Enter is not required** during the match. On other OSes the fallback adapter remains buildable but may stay line-buffered until the real SSH transport is wired in.
+> On Unix-like systems and Windows, the local terminal adapter reads movement keys immediately, so **pressing Enter is not required** during the match. On other OSes the fallback adapter remains buildable but may stay line-buffered until the real SSH transport is wired in.
 
 ## Repo layout
 

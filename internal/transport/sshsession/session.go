@@ -74,6 +74,12 @@ func (s *LocalTerminalSession) ReadKey(ctx context.Context) (byte, error) {
 	go func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
+		if s.file != nil {
+			if b, ok, err := readTerminalKey(s.file); ok {
+				ch <- result{b: b, err: err}
+				return
+			}
+		}
 		b, err := s.r.ReadByte()
 		ch <- result{b: b, err: err}
 	}()
