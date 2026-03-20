@@ -1,0 +1,10 @@
+id: alpha
+name: Alpha Room
+image: ssh-riders-room:latest
+listen_address: http://room-alpha:9090
+max_players: 6
+tick_rate: 12
+arena_width: 48
+arena_height: 20
+countdown_sec: 3
+idle_ttl_seconds: 30

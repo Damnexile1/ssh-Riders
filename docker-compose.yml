@@ -1,0 +1,46 @@
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: deployments/orchestrator/Dockerfile
+    environment:
+      ORCHESTRATOR_LISTEN_ADDR: ":8081"
+      REGISTRY_PATH: /data/registry.json
+      MANIFEST_DIR: /app/manifests
+    volumes:
+      - ./manifests:/app/manifests:ro
+      - orchestrator-data:/data
+    ports:
+      - "8081:8081"
+
+  room-alpha:
+    build:
+      context: .
+      dockerfile: deployments/room/Dockerfile
+    environment:
+      ROOM_ID: alpha
+      ROOM_NAME: Alpha Room
+      ROOM_LISTEN_ADDR: ":9090"
+      ROOM_TICK_RATE: "12"
+      ROOM_ARENA_WIDTH: "48"
+      ROOM_ARENA_HEIGHT: "20"
+      ROOM_MAX_PLAYERS: "6"
+      ROOM_COUNTDOWN_SECONDS: "3"
+    ports:
+      - "9090:9090"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: deployments/gateway/Dockerfile
+    environment:
+      ORCHESTRATOR_ADDR: http://orchestrator:8081
+      DEFAULT_ROOM_ID: alpha
+    depends_on:
+      - orchestrator
+      - room-alpha
+    stdin_open: true
+    tty: true
+
+volumes:
+  orchestrator-data:
