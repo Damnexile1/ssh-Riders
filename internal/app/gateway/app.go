@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -39,7 +40,7 @@ func (a *App) RunCLI(ctx context.Context, r io.Reader, w io.Writer) error {
 	}
 	welcome := domain.RenderFrame{Lines: []string{
 		"SSH Riders Gateway",
-		"This binary contains SSH session handling skeleton for local terminal emulation.",
+		"Local terminal mode enabled.",
 		"Enter your rider name and press ENTER:",
 	}}
 	if err := sess.WriteFrame(welcome); err != nil {
@@ -52,22 +53,27 @@ func (a *App) RunCLI(ctx context.Context, r io.Reader, w io.Writer) error {
 	if strings.TrimSpace(name) == "" {
 		name = "rider"
 	}
+	if err := sess.EnableGameMode(); err != nil {
+		a.logger.Error("enable_game_mode_failed", map[string]any{"err": err.Error()})
+	}
 	room := rooms[0]
 	player := domain.Player{ID: sanitize(name), Name: name, JoinedAt: time.Now(), ColorANSI: "36"}
-	body, _ := json.Marshal(player)
-	resp, err := http.Post(room.Address+"/join", "application/json", bytes.NewReader(body))
-	if err == nil {
-		resp.Body.Close()
+	if err := a.joinRoom(room, player); err != nil {
+		return err
 	}
 	frameTicker := time.NewTicker(a.cfg.LobbyRefresh)
 	defer frameTicker.Stop()
-	inputCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go a.captureInput(inputCtx, sess, room, player)
+	inputErrCh := make(chan error, 1)
+	go a.captureInput(ctx, sess, room, player, inputErrCh)
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case err := <-inputErrCh:
+			if err != nil && !errors.Is(err, context.Canceled) {
+				return err
+			}
+			return nil
 		case <-frameTicker.C:
 			frame, err := a.fetchFrame(room.Address, player.ID)
 			if err != nil {
@@ -80,13 +86,31 @@ func (a *App) RunCLI(ctx context.Context, r io.Reader, w io.Writer) error {
 	}
 }
 
-func (a *App) captureInput(ctx context.Context, sess sshsession.Session, room domain.Room, player domain.Player) {
+func (a *App) joinRoom(room domain.Room, player domain.Player) error {
+	body, _ := json.Marshal(player)
+	resp, err := http.Post(room.Address+"/join", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("join room failed: %s", resp.Status)
+	}
+	return nil
+}
+
+func (a *App) captureInput(ctx context.Context, sess sshsession.Session, room domain.Room, player domain.Player, errCh chan<- error) {
 	for {
-		line, err := sess.ReadLine(ctx)
+		key, err := sess.ReadKey(ctx)
 		if err != nil {
+			errCh <- err
 			return
 		}
-		dir, ok := parseDirection(line)
+		if key == 'q' || key == 'Q' {
+			errCh <- nil
+			return
+		}
+		dir, ok := parseDirectionKey(key)
 		if !ok {
 			continue
 		}
@@ -108,15 +132,16 @@ func (a *App) fetchFrame(roomAddr, playerID string) (domain.RenderFrame, error) 
 func sanitize(v string) string {
 	return strings.NewReplacer(" ", "-", "/", "-", "\\", "-").Replace(strings.ToLower(v))
 }
-func parseDirection(v string) (domain.Direction, bool) {
-	switch strings.ToLower(strings.TrimSpace(v)) {
-	case "w", "up":
+
+func parseDirectionKey(key byte) (domain.Direction, bool) {
+	switch key {
+	case 'w', 'W':
 		return domain.DirectionUp, true
-	case "s", "down":
+	case 's', 'S':
 		return domain.DirectionDown, true
-	case "a", "left":
+	case 'a', 'A':
 		return domain.DirectionLeft, true
-	case "d", "right":
+	case 'd', 'D':
 		return domain.DirectionRight, true
 	default:
 		return "", false

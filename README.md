@@ -31,10 +31,13 @@ docker compose up --build
 
 ## Controls
 
-- `w` / `up`
-- `a` / `left`
-- `s` / `down`
-- `d` / `right`
+- `w` — up
+- `a` — left
+- `s` — down
+- `d` — right
+- `q` — exit local round view
+
+> In local terminal mode movement keys are read in raw mode, so **pressing Enter is not required** during the match.
 
 ## Repo layout
 
